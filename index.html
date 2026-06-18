@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <title>离线工具合集</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; scroll-behavior: smooth; }
+    .selection-active::selection { background-color: #dbeafe; color: #1e3a8a; }
+    .error-highlight { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+    .soft-grid {
+      background-image:
+        linear-gradient(to right, rgba(148,163,184,0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148,163,184,0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .selection-surface::selection { background-color: #dbeafe; color: #1d4ed8; }
+    .line-anchor { scroll-margin-top: 110px; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 soft-grid">
+  <div id="app" class="min-h-screen">
+    <div class="flex min-h-screen">
+      <aside class="fixed inset-y-0 left-0 z-30 w-72 border-r border-slate-200 bg-white/95 backdrop-blur xl:w-80">
+        <div class="flex h-full flex-col">
+          <div class="border-b border-slate-200 px-6 py-6">
+            <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+              <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+              全离线单文件工具箱
+            </div>
+            <h1 class="mt-4 text-2xl font-bold tracking-tight text-slate-900">离线工具合集</h1>
+            <p class="mt-2 text-sm leading-6 text-slate-500">把多个离线处理网页整合进同一入口页，左侧导航切换，右侧模块独立运行，互不干扰。</p>
+          </div>
+          <nav class="flex-1 space-y-2 overflow-y-auto px-4 py-5">
+            <button
+              v-for="item in navItems"
+              :key="item.key"
+              @click="activeTab = item.key"
+              class="w-full rounded-2xl border px-4 py-4 text-left transition-all"
+              :class="activeTab === item.key ? 'border-indigo-200 bg-indigo-50 shadow-sm ring-1 ring-indigo-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold" :class="activeTab === item.key ? 'text-indigo-700' : 'text-slate-800'">{{ item.title }}</div>
+                  <div class="mt-1 text-xs leading-5" :class="activeTab === item.key ? 'text-indigo-500' : 'text-slate-500'">{{ item.desc }}</div>
+                </div>
+                <div class="rounded-xl px-2.5 py-1 text-[11px] font-semibold" :class="activeTab === item.key ? 'bg-white text-indigo-600' : 'bg-slate-100 text-slate-500'">{{ item.badge }}</div>
+              </div>
+            </button>
+          </nav>
+          <div class="border-t border-slate-200 px-5 py-4 text-xs text-slate-500">
+            <div class="rounded-2xl bg-slate-50 px-4 py-3 leading-5">模块状态互相独立，切换后会保留各自输入、结果与操作状态。</div>
+            <div class="mt-3 px-1 text-[11px] text-slate-400">ZL库团队出品</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="min-w-0 flex-1 pl-72 xl:pl-80">
+        <div class="mx-auto max-w-7xl px-4 py-5 md:px-6 md:py-6">
+          <section v-show="activeTab === 'segmenter'" class="space-y-5">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 class="text-xl font-bold text-slate-900">分段与限定词</h2>
+                  <p class="mt-1 text-sm text-slate-500">自动分段、划选限定词、检查状态、联动同步与表格复制全部保留。</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">段落数</div><div class="mt-1 text-lg font-semibold text-slate-900">{{ segmenter.segments.length }}</div></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">合格数</div><div class="mt-1 text-lg font-semibold text-slate-900">{{ segmenterQualifiedCount }}</div></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">校验结果</div><div class="mt-1 text-sm font-semibold" :class="segmenter.isAllQualified ? 'text-emerald-600' : 'text-slate-700'">{{ segmenter.isAllQualified ? '全部合格' : '待检查 / 未全通过' }}</div></div>
+                  <label class="flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"><input type="checkbox" v-model="segmenter.noQualifierMode" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">无需限定词</label>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+              <div class="space-y-5 min-w-0">
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                    <h3 class="text-base font-semibold text-slate-900">输入原始文本</h3>
+                    <button @click="clearSegmenterInput" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">清空全部</button>
+                  </div>
+                  <div class="p-5 space-y-4">
+                    <textarea v-model="segmenter.inputText" placeholder="请粘贴需要处理的长文本..." class="w-full min-h-[220px] resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <button @click="handleSegmentText" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">开始分段</button>
+                  </div>
+                </div>
+                <div class="space-y-4">
+                  <div v-for="(seg, index) in segmenter.segments" :key="seg.id" :id="'seg-' + seg.id" class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all" :class="[seg.errorMsg ? 'border-red-200 error-highlight' : (seg.selectedWords.length > 0 || segmenter.noQualifierMode ? 'border-indigo-200' : 'border-slate-200'), seg.isHighlighted ? 'ring-2 ring-amber-300 ring-offset-2' : '']">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-5 py-4">
+                      <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <span class="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">段落 {{ index + 1 }}</span>
+                        <span class="text-xs font-medium" :class="seg.modifiedText.length < 200 ? 'text-red-500' : 'text-slate-400'">字数: {{ seg.modifiedText.length }}</span>
+                        <span v-if="seg.selectedWords.length > 0" class="max-w-full break-all rounded-xl border border-indigo-100 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-600">[{{ seg.selectedWords.join(' ') }}]</span>
+                        <span v-else class="text-xs italic text-slate-400">{{ segmenter.noQualifierMode ? '无需划选' : '未划选' }}</span>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <button @click="undoLastSelection(seg.id)" :disabled="seg.selectedWords.length === 0" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">撤销上一个</button>
+                        <button @click="clearAllSelections(seg.id)" :disabled="seg.selectedWords.length === 0" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">全部撤销</button>
+                        <button @click="toggleEditing(seg.id)" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100">{{ seg.isEditing ? '完成' : '修改' }}</button>
+                        <button @click="copySegment(seg)" class="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">复制</button>
+                        <button @click="deleteSegment(seg.id)" class="rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-red-500 transition hover:border-red-200 hover:bg-red-50">删除</button>
+                      </div>
+                    </div>
+                    <div class="space-y-3 p-5">
+                      <div v-if="seg.errorMsg" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><span class="font-semibold">不合格提示：</span>{{ seg.errorMsg }}</div>
+                      <textarea v-if="seg.isEditing" v-model="seg.modifiedText" class="w-full min-h-[160px] resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                      <div v-else @mouseup="handleMouseUp($event, seg.id)" class="selection-active whitespace-pre-wrap rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-800"><span v-if="seg.selectedWords.length > 0" class="mr-2 font-bold text-indigo-600">[{{ seg.selectedWords.join(' ') }}]</span>{{ seg.modifiedText }}</div>
+                      <p v-if="!seg.isEditing" class="text-xs italic text-slate-400">划选词语会自动提取为前缀，并向后续段落进行联动同步。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <aside class="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">工具面板</div>
+                  <div class="space-y-2">
+                    <button @click="checkAllSegments" class="flex w-full items-center justify-center rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100">检查状态</button>
+                    <button @click="scrollToFirstUnqualified" class="flex w-full items-center justify-center rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-100">定位待办</button>
+                    <button @click="copyAllAsTable" :disabled="!segmenter.isAllQualified" class="flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium transition" :class="segmenter.isAllQualified ? 'bg-slate-900 text-white hover:bg-slate-800' : 'cursor-not-allowed bg-slate-100 text-slate-400'">表格复制</button>
+                    <button @click="scrollToTop" class="flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">回到顶部</button>
+                  </div>
+                </div>
+                <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div class="flex items-center justify-between text-sm text-slate-600"><span>合格进度</span><span>{{ segmenterQualifiedCount }}/{{ segmenter.segments.length }}</span></div>
+                  <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-indigo-500 transition-all duration-300" :style="{ width: segmenter.segments.length ? (segmenterQualifiedCount / segmenter.segments.length * 100) + '%' : '0%' }"></div></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section v-show="activeTab === 'filter'" class="space-y-5">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-xl font-bold text-slate-900">剔除无效信息</h2>
+              <p class="mt-1 text-sm text-slate-500">输入原始文本，按词组批量剔除后输出连续文本，剔除词管理和复制结果都保留。</p>
+            </div>
+            <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
+              <div class="space-y-5 xl:col-span-7">
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <h3 class="text-base font-semibold text-slate-900">文本输入</h3>
+                    <div class="flex flex-wrap gap-2">
+                      <button @click="handleFilterProcessText" class="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">处理文本</button>
+                      <button @click="clearFilterAll" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">清空全部</button>
+                    </div>
+                  </div>
+                  <div class="p-5"><textarea v-model="filter.inputText" placeholder="请在这里粘贴原始文本……" class="w-full min-h-[260px] resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea></div>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="border-b border-slate-100 px-5 py-4"><h3 class="text-base font-semibold text-slate-900">需要剔除的文本</h3></div>
+                  <div class="space-y-4 p-5">
+                    <div class="flex min-h-[36px] flex-wrap gap-2">
+                      <div v-for="(term, index) in filter.removalTerms" :key="term + '-' + index" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs text-slate-700"><span>{{ term }}</span><button @click="removeFilterTerm(index)" class="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-red-500" title="删除">×</button></div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                      <input v-model="filter.newTerm" @keyup.enter="addFilterTerm" type="text" placeholder="输入新词组" class="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500" />
+                      <button @click="addFilterTerm" class="h-11 rounded-2xl bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">添加</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <aside class="xl:col-span-5">
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <h3 class="text-base font-semibold text-slate-900">处理后文本</h3>
+                    <button @click="copyProcessedText" :disabled="!filter.processedText" class="rounded-2xl px-4 py-2.5 text-sm font-medium shadow-sm transition" :class="filter.processedText ? 'bg-slate-900 text-white hover:bg-slate-800' : 'cursor-not-allowed bg-slate-100 text-slate-400'">复制</button>
+                  </div>
+                  <div class="p-5"><div class="min-h-[260px] break-all rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-700"><template v-if="filter.processedText">{{ filter.processedText }}</template><template v-else><span class="text-slate-400">处理后的连续文字会显示在这里。</span></template></div></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section v-show="activeTab === 'batchSelector'" class="space-y-5">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 class="text-xl font-bold text-slate-900">批量添加限定词</h2>
+                  <p class="mt-1 text-sm text-slate-500">输入多行内容后自动拆分；支持按词批量添加、手动框选限定词、检查待办与表格复制。</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">总行数</div><div class="mt-1 text-lg font-semibold text-slate-900">{{ batchSelector.rows.length }}</div></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">已有前缀</div><div class="mt-1 text-lg font-semibold text-emerald-600">{{ batchStatusSummary.withQualifier }}</div></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">字数不足</div><div class="mt-1 text-lg font-semibold text-amber-600">{{ batchStatusSummary.tooShortPending }}</div></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div class="text-xs text-slate-500">超过 500 字</div><div class="mt-1 text-lg font-semibold text-rose-600">{{ batchStatusSummary.overLimit }}</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+              <div class="space-y-5 min-w-0">
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="border-b border-slate-100 px-5 py-4">
+                    <h3 class="text-base font-semibold text-slate-900">批量输入</h3>
+                    <p class="mt-1 text-sm text-slate-500">按换行拆分，一行生成一个处理框；输入变更后下方实时同步。</p>
+                  </div>
+                  <div class="space-y-4 p-5">
+                    <textarea v-model="batchSelector.inputText" placeholder="请粘贴多行文本，每行一条。输入后会自动拆分展示。" class="min-h-[220px] w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <div class="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+                      <input v-model.trim="batchSelector.batchQualifierInput" @keyup.enter="batchApplyQualifier" type="text" placeholder="输入限定词，仅命中的合格段落才会添加，且每条最多 2 个" class="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500" />
+                      <button @click="batchApplyQualifier" class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"><span class="material-symbols-outlined">playlist_add</span>批量添加</button>
+                      <button @click="batchClearAllQualifiers" class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"><span class="material-symbols-outlined">layers_clear</span>清除全部限定词</button>
+                      <button @click="batchClearAll" class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 text-sm font-medium text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"><span class="material-symbols-outlined">delete</span>清空全部</button>
+                    </div>
+                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-700">规则说明：点击“批量添加”后，会先在每段正文中搜索该词语；只有命中的且字数不少于 20 的段落才会添加到最前面，且每条通过批量添加加入的限定词最多只能有 2 个。低于 20 字的段落只允许手动框选限定词。</div>
+                  </div>
+                </div>
+                <div class="space-y-4">
+                  <article v-for="(row, index) in batchSelector.rows" :key="row.id" :id="`batch-row-${row.id}`" class="line-anchor relative overflow-hidden rounded-3xl border bg-white shadow-sm transition-all" :class="batchRowCardClass(row)">
+                    <button @click="batchDeleteRow(row.id)" class="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-rose-500 transition hover:border-rose-200 hover:bg-rose-50" title="删除本段" aria-label="删除本段"><span class="material-symbols-outlined">delete</span></button>
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-5 py-4 pr-16">
+                      <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <span class="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">第 {{ index + 1 }} 行</span>
+                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="row.finalText.length > 500 ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'">字数 {{ row.finalText.length }}</span>
+                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="row.qualifiers.length ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">{{ row.qualifiers.length ? '已有前缀' : '未加前缀' }}</span>
+                        <span v-if="row.text.trim().length < 20 && row.qualifiers.length === 0" class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">字数不符</span>
+                        <span v-if="row.finalText.length > 500" class="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-600">字数不符</span>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <button @click="batchUndoSelection(row.id)" :disabled="!row.history.length" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">撤销框选</button>
+                        <button @click="batchClearSelections(row.id)" :disabled="!row.history.length" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50">清除框选</button>
+                        <button @click="batchToggleEdit(row.id)" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100">{{ row.isEditing ? '完成修改' : '修改本段文字' }}</button>
+                        <button @click="batchCopyRow(row.id)" class="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">复制本段文字</button>
+                      </div>
+                    </div>
+                    <div class="space-y-4 p-5">
+                      <div v-if="row.text.trim().length < 20 && row.qualifiers.length === 0" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">字数不足，请先手动框选限定词。</div>
+                      <div v-if="row.finalText.length > 500" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">字数不符，请删除或精简后再检查。</div>
+                      <div v-if="row.isEditing" class="space-y-3">
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-800"><span v-if="row.qualifiers.length > 0" class="mr-2 font-semibold text-indigo-600">[{{ row.qualifiers.join(' ') }}]</span>{{ row.text || '（当前正文为空）' }}</div>
+                        <textarea v-model="row.text" class="min-h-[180px] w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                        <p class="text-xs text-slate-400">限定词会保留在段落最前面；低于 20 字的段落需手动框选限定词后才算通过。</p>
+                      </div>
+                      <div v-else>
+                        <div @mouseup="batchCaptureSelection($event, row.id)" class="selection-surface whitespace-pre-wrap rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-800"><span v-if="row.qualifiers.length > 0" class="mr-2 font-semibold text-indigo-600">[{{ row.qualifiers.join(' ') }}]</span>{{ row.text || '（当前正文为空）' }}</div>
+                        <p class="mt-2 text-xs text-slate-400">直接在正文里框选文字，可把所选内容加入本行最前面的限定词列表。</p>
+                      </div>
+                    </div>
+                  </article>
+                  <div v-if="!batchSelector.rows.length" class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-400 shadow-sm">还没有拆分内容，先在上方输入多行文本吧。</div>
+                </div>
+              </div>
+              <aside class="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">工具面板</div>
+                  <div class="space-y-2">
+                    <button @click="batchRunCheck" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100"><span class="material-symbols-outlined">fact_check</span>检查状态</button>
+                    <button @click="batchGoToNextTodo" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-100"><span class="material-symbols-outlined">assistant_navigation</span>定位待办</button>
+                    <button @click="batchCopyTable" :disabled="!batchCanCopyTable" class="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition" :class="batchCanCopyTable ? 'bg-slate-900 text-white hover:bg-slate-800' : 'cursor-not-allowed bg-slate-100 text-slate-400'"><span class="material-symbols-outlined">table</span>表格复制</button>
+                    <button @click="scrollToTop" class="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"><span class="material-symbols-outlined">vertical_align_top</span>回到顶部</button>
+                  </div>
+                </div>
+                <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div class="text-sm font-semibold text-slate-900">检查状态</div>
+                  <div class="mt-4 space-y-3 text-sm text-slate-600">
+                    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><span>已有限定词</span><strong class="text-emerald-600">{{ batchStatusSummary.withQualifier }}</strong></div>
+                    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><span>无限定词</span><strong class="text-amber-600">{{ batchStatusSummary.withoutQualifier }}</strong></div>
+                    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><span>字数不足</span><strong class="text-amber-600">{{ batchStatusSummary.tooShortPending }}</strong></div>
+                    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><span>超过 500 字</span><strong class="text-rose-600">{{ batchStatusSummary.overLimit }}</strong></div>
+                    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><span>检查通过</span><strong class="text-indigo-600">{{ batchStatusSummary.ready }}</strong></div>
+                  </div>
+                  <div class="mt-4">
+                    <div class="flex items-center justify-between text-xs text-slate-500"><span>通过进度</span><span>{{ batchStatusSummary.ready }}/{{ batchSelector.rows.length || 0 }}</span></div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-indigo-500 transition-all duration-300" :style="{ width: batchProgressWidth }"></div></div>
+                  </div>
+                  <div class="mt-4 rounded-2xl border px-4 py-3 text-sm" :class="batchSelector.checkPassed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'">{{ batchSelector.checkPassed ? '当前检查已通过，可进行表格复制。' : '表格复制默认不可用，只有检查通过后才可使用。' }}</div>
+                </div>
+                <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div class="text-sm font-semibold text-slate-900">通过标准</div>
+                  <ul class="mt-3 space-y-2 text-sm leading-6 text-slate-500">
+                    <li>• 每段必须至少有 1 个限定词。</li>
+                    <li>• 低于 20 字的段落不参与批量添加；手动框选到限定词后即可通过。</li>
+                    <li>• 每段最终文本不得多于 500 字；超过时必须删除或精简后再检查。</li>
+                    <li>• 只有点击“检查状态”并全部通过后，才能使用“表格复制”。</li>
+                  </ul>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section v-show="activeTab === 'imagePreview'" class="space-y-5">            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h2 class="text-xl font-bold text-slate-900">批量预览图片</h2>
+                  <p class="mt-1 text-sm text-slate-500">支持自动识别粘贴内容中的图片链接（纯文本、Markdown、HTML），批量预览、选中复制与原图放大查看。</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">{{ image.statsText }}</div>
+              </div>
+            </div>
+            <div class="space-y-5">
+              <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-5 py-4"><h3 class="text-base font-semibold text-slate-900">图片链接输入</h3></div>
+                <div class="space-y-4 p-5">
+                  <textarea v-model="image.inputText" @input="handleImageInput" placeholder="请在这里粘贴包含图片链接的文本...&#10;示例：&#10;https://example.com/image.png&#10;![](https://example.com/b.jpg)&#10;<img src='https://example.com/c.webp'>" class="w-full min-h-[180px] resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm leading-6 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap gap-2">
+                      <button @click="renderImageGalleryFromInput" class="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">识别并渲染</button>
+                      <button @click="copySelectedImageLinks" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">复制选中链接</button>
+                      <button @click="clearImageAll" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">清空内容</button>
+                    </div>
+                    <div class="text-sm text-slate-500">支持懒加载与卡片多选</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div v-if="image.links.length === 0" class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-400 shadow-sm">暂无识别到的图片</div>
+                <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <div v-for="(url, index) in image.links" :key="url + '-' + index" class="overflow-hidden rounded-3xl border-2 bg-white shadow-sm transition-all hover:-translate-y-0.5" :class="image.selectedUrls.has(url) ? 'border-indigo-400 bg-indigo-50/50' : 'border-transparent'">
+                    <div class="relative">
+                      <input type="checkbox" class="absolute left-3 top-3 z-10 h-5 w-5 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" :checked="image.selectedUrls.has(url)" @click.stop @change="toggleImageSelect(url)" />
+                      <div @click="openImageLightbox(url)" class="flex h-44 cursor-zoom-in items-center justify-center overflow-hidden bg-slate-100"><img :data-src="url" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" :alt="getImageFilename(url)" class="max-h-full max-w-full object-contain opacity-0 transition-opacity duration-300" loading="lazy" /></div>
+                    </div>
+                    <div class="space-y-3 p-4 text-sm"><div class="truncate font-medium text-slate-800" :title="getImageFilename(url)">{{ getImageFilename(url) }}</div><div class="flex gap-3 text-xs"><button @click="copySingleImageLink(url)" class="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline">复制链接</button><a :href="url" target="_blank" class="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline">打开原图</a></div></div>
+                    <button @click="toggleImageSelect(url)" class="w-full border-t border-slate-100 px-4 py-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">{{ image.selectedUrls.has(url) ? '取消选中' : '选中图片' }}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section v-show="activeTab === 'urlExtract'" class="space-y-5">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-xl font-bold text-slate-900">图片url提炼</h2>
+              <p class="mt-1 text-sm text-slate-500">请输入对象ID和审核记录（消重清洗）或“1_url_labels”（风险域），可获取对象ID + 图片url。</p>
+            </div>
+            <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
+              <div class="space-y-5 xl:col-span-6">
+                <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <button @click="setUrlExtractMode('migration')" class="rounded-2xl border px-4 py-4 text-left transition" :class="urlExtract.mode === 'migration' ? 'border-indigo-200 bg-indigo-50 ring-1 ring-indigo-100' : 'border-slate-200 bg-white hover:bg-slate-50'">
+                      <div class="text-sm font-semibold text-slate-900">消重清洗</div>
+                      <div class="mt-1 text-xs leading-5 text-slate-500">继续保留旧版字符串截取逻辑，支持对象ID + 信息块两列输入。</div>
+                    </button>
+                    <button @click="setUrlExtractMode('annotation')" class="rounded-2xl border px-4 py-4 text-left transition" :class="urlExtract.mode === 'annotation' ? 'border-indigo-200 bg-indigo-50 ring-1 ring-indigo-100' : 'border-slate-200 bg-white hover:bg-slate-50'">
+                      <div class="text-sm font-semibold text-slate-900">风险域</div>
+                      <div class="mt-1 text-xs leading-5 text-slate-500">解析类似 url_labels / 1_url_labels 的结构化内容，提取对象ID、url 与 label。</div>
+                    </button>
+                  </div>
+                  <div class="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">当前模式：{{ urlExtractModeName }}</div>
+                  <div class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600" v-html="urlExtractModeTips"></div>
+                  <textarea v-model="urlExtract.inputText" :placeholder="urlExtractModePlaceholder" class="mt-4 w-full min-h-[300px] resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                  <div class="mt-4 flex flex-wrap gap-2">
+                    <button @click="processUrlExtract" class="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">开始处理</button>
+                    <button @click="clearUrlExtract" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">清空内容</button>
+                    <button @click="loadUrlExtractSample" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">加载示例</button>
+                  </div>
+                </div>
+              </div>
+              <div class="space-y-5 xl:col-span-6">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">解析条数</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ urlExtract.records.length }}</div></div>
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">reserve 数量</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ urlExtractReserveCount }}</div></div>
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">cull 数量</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ urlExtractCullCount }}</div></div>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <div>
+                      <h3 class="text-base font-semibold text-slate-900">处理结果</h3>
+                      <p class="mt-1 text-xs text-slate-500">{{ urlExtract.resultMeta || '处理完成后，这里会展示表格结果。' }}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <button @click="copyUrlExtractOutput" :disabled="!urlExtract.outputText" class="rounded-2xl px-4 py-2.5 text-sm font-medium transition" :class="urlExtract.outputText ? 'bg-slate-900 text-white hover:bg-slate-800' : 'cursor-not-allowed bg-slate-100 text-slate-400'">复制表格数据</button>
+                      <button @click="downloadUrlExtractCsv" :disabled="!urlExtract.records.length" class="rounded-2xl px-4 py-2.5 text-sm font-medium transition" :class="urlExtract.records.length ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'cursor-not-allowed bg-slate-100 text-slate-400'">下载 CSV</button>
+                    </div>
+                  </div>
+                  <div v-if="!urlExtract.records.length" class="p-10 text-center text-sm text-slate-400">还没有处理结果，先选择模式并粘贴内容吧。</div>
+                  <div v-else class="overflow-auto">
+                    <table class="min-w-full table-auto text-left text-sm">
+                      <thead class="bg-slate-50 text-slate-700"><tr><th class="px-4 py-3">序号</th><th class="px-4 py-3">对象ID</th><th class="px-4 py-3">图片链接</th><th class="px-4 py-3">label值</th></tr></thead>
+                      <tbody>
+                        <tr v-for="(item, index) in urlExtract.records" :key="item.objectId + item.url + item.label + index" class="border-t border-slate-100 even:bg-slate-50/60">
+                          <td class="px-4 py-3"><span class="inline-flex min-w-7 items-center justify-center rounded-full bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-600">{{ index + 1 }}</span></td>
+                          <td class="px-4 py-3 break-all text-slate-700">{{ item.objectId || '-' }}</td>
+                          <td class="px-4 py-3 break-all text-slate-700">{{ item.url }}</td>
+                          <td class="px-4 py-3"><span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold" :class="item.label === 'reserve' ? 'bg-emerald-50 text-emerald-700' : item.label === 'cull' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'">{{ item.label }}</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section v-show="activeTab === 'imageFilter'" class="space-y-5">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-xl font-bold text-slate-900">图片过滤</h2>
+              <p class="mt-1 text-sm text-slate-500">请输入图片url，可输出判定是否为纯色图 / 极度模糊图。</p>
+            </div>
+            <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
+              <div class="space-y-5 xl:col-span-5">
+                <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h3 class="text-base font-semibold text-slate-900">输入与参数</h3>
+                  <div class="mt-4">
+                    <label class="mb-2 block text-sm font-medium text-slate-700">图片链接列表（每行一个）</label>
+                    <textarea v-model="imgJudge.inputText" placeholder="https://example.com/a.jpg&#10;https://example.com/b.png" class="w-full min-h-[320px] resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 shadow-inner outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                  </div>
+                  <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-slate-700">极度模糊阈值（Laplacian 方差）</label>
+                      <input v-model.number="imgJudge.blurThreshold" type="number" min="0" step="1" class="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-slate-700">纯色阈值（RGB 标准差）</label>
+                      <input v-model.number="imgJudge.solidThreshold" type="number" min="0" step="0.1" class="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                  </div>
+                  <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button @click="startImageJudge" :disabled="imgJudge.processing" class="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">开始处理</button>
+                    <button @click="copyImageJudgeResults" :disabled="!imgJudge.results.length" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">复制结果表格</button>
+                    <button @click="fillImageJudgeSample" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">填充示例</button>
+                    <button @click="clearImageJudgeAll" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">清空内容</button>
+                  </div>
+                  <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap">{{ imgJudge.status }}</div>
+                  <ul class="mt-4 space-y-2 text-sm leading-6 text-slate-500">
+                    <li>纯色检测：统计像素 RGB 与灰度分布的标准差，极低时视为纯色或近似纯色图。</li>
+                    <li>极度模糊检测：结合 Laplacian 方差、边缘占比、边缘平均强度与整体灰度对比度，仅在“基本看不清内容”时判定为模糊图。</li>
+                    <li>若图片源不允许跨域读取像素，浏览器会阻止 Canvas 获取数据，此时会返回加载失败提示。</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="space-y-5 xl:col-span-7">
+                <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">总数</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ imgJudge.total }}</div></div>
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">纯色图</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ imgJudge.solidCount }}</div></div>
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">模糊图</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ imgJudge.blurCount }}</div></div>
+                  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs text-slate-500">正常图</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ imgJudge.normalCount }}</div></div>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div class="border-b border-slate-100 px-5 py-4"><h3 class="text-base font-semibold text-slate-900">分析结果</h3></div>
+                  <div class="overflow-auto">
+                    <table class="min-w-full table-fixed text-left text-sm">
+                      <thead class="bg-slate-50 text-slate-700"><tr><th class="w-[70%] px-4 py-3">图片链接</th><th class="w-[30%] px-4 py-3">是否符合条件</th></tr></thead>
+                      <tbody>
+                        <tr v-if="!imgJudge.visibleResults.length"><td colspan="2" class="px-4 py-8 text-center text-slate-400">暂无结果，点击“开始处理”后显示。</td></tr>
+                        <tr v-for="(item, index) in imgJudge.visibleResults" :key="item.url + index" class="border-t border-slate-100 even:bg-slate-50/60">
+                          <td class="px-4 py-3 break-all text-slate-700">{{ item.url }}</td>
+                          <td class="px-4 py-3"><span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold" :class="getImageJudgeBadgeClass(item.label)">{{ item.label }}</span></td>
+                        </tr>
+                        <tr v-if="imgJudge.results.length > imgJudge.displayLimit"><td colspan="2" class="border-t border-slate-100 px-4 py-3 text-sm text-slate-500">当前仅展示前 {{ imgJudge.displayLimit }} 条，复制时会导出全部结果。</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div v-if="lightbox.visible" @click="closeLightbox" class="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-slate-950/90 p-6"><img :src="lightbox.url" alt="预览图" class="max-h-[90vh] max-w-[90vw] shadow-2xl" /></div>
+    <canvas ref="judgeCanvas" class="fixed -left-[99999px] -top-[99999px] invisible"></canvas>
+    <div v-if="toastMsg" class="fixed bottom-5 right-5 z-<a href="https://cloud.bytedance.net/developer/docs/merlin/wiki/WOJXdqEuOozjUTxK3BdcnXCCnWg" target="_blank" class="[color:#5fc3a7] hover:[color:#3d9882]"><a href="https://cloud.bytedance.net/developer/docs/merlin/wiki/WOJXdqEuOozjUTxK3BdcnXCCnWg" target="_blank" class="[color:#5fc3a7] hover:[color:#3d9882]">[60]</a></a> rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-2xl">{{ toastMsg }}</div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, watch, nextTick, onBeforeUnmount } = Vue;
+    const MAX_SEGMENT_LENGTH = 480;
+    const MIN_SEGMENT_LENGTH = 200;
+    const TOAST_DURATION = 2000;
+    const DEFAULT_TERMS = ['抽帧图片', '剔除', '保留', '图片消重库'];
+    const FALLBACK_SPLIT_PUNCTUATION = new Set(['。','！','？','!','?','；',';','，',',','、','：',':']);
+    const MAX_LINKED_SELECTION_COUNT = 2;
+    const REGEX_URL = /https?:\/\/[^\s"'<]+?\.(?:png|jpg|jpeg|gif|webp|svg|bmp|image|avif|heic)(?:\?\S*)?/gi;
+
+    createApp({
+      setup() {
+        const judgeCanvas = ref(null);
+        const navItems = [
+          { key: 'segmenter', title: '分段与限定词', desc: '自动分段、划选限定词、联动同步、检查与复制', badge: '模块 1' },
+          { key: 'filter', title: '剔除无效信息', desc: '按配置词组批量剔除，输出连续文本', badge: '模块 2' },
+          { key: 'batchSelector', title: '批量添加限定词', desc: '逐行拆分、批量添加、手动框选、检查与表格复制', badge: '模块 3' },
+          { key: 'imagePreview', title: '批量预览图片', desc: '识别图片链接、批量预览、选中复制', badge: '模块 4' },
+          { key: 'urlExtract', title: '图片url提炼', desc: '对象ID + 记录解析，输出对象ID、图片url、label', badge: '模块 5' },
+          { key: 'imageFilter', title: '图片过滤', desc: '判断是否为纯色图 / 极度模糊图', badge: '模块 6' }
+        ];
+        const activeTab = ref('segmenter');
+        const toastMsg = ref('');
+        const lightbox = reactive({ visible: false, url: '' });
+        let toastTimer = null;
+        let imageDebounceTimer = null;
+        let imageObserver = null;
+        let nextSegmentId = 1;
+
+        const segmenter = reactive({ inputText: '', segments: [], noQualifierMode: false, isAllQualified: false });
+        const filter = reactive({ inputText: '', processedText: '', removalTerms: [...DEFAULT_TERMS], newTerm: '' });
+        const batchSelector = reactive({ inputText: '', batchQualifierInput: '', rows: [], checkPassed: false });
+        let batchNextId = 1;
+        let batchTodoPointer = -1;
+        const image = reactive({ inputText: '', links: [], selectedUrls: new Set(), statsText: '识别到 0 张图片' });
+        const urlExtract = reactive({ mode: 'migration', inputText: '', records: [], outputText: '', resultMeta: '' });
+        const imgJudge = reactive({ inputText: '', blurThreshold: 35, solidThreshold: 8, status: '等待开始。', results: [], total: 0, solidCount: 0, blurCount: 0, normalCount: 0, processing: false, displayLimit: 100 });
+
+        const modeConfig = {
+          migration: {
+            name: '消重清洗',
+            placeholder: '支持两种输入方式：\n1）单块原始文本\n2）从 Excel 直接复制的两列：对象ID + 信息块（制表符分隔）\n\n示例：\nobj_001\treserve_urls: ["https://xx"]\nobj_002\t{"url":"https://yy","label":"cull"}',
+            tips: '支持<strong>单块文本</strong>，也支持<strong>两列输入</strong>：第 1 列为对象ID，第 2 列为信息块。最终输出固定为 <strong>3列 TSV：对象ID、图片链接、label值</strong>。'
+          },
+          annotation: {
+            name: '风险域',
+            placeholder: '支持两种输入方式：\n1）单块原始文本\n2）从 Excel 直接复制的两列：对象ID + 信息块（制表符分隔）\n\n示例：\nobj_001\t1_url_labels: [{"url":"https://xx","label":"reserve"}]\nobj_002\turl_labels: [{"url":"https://yy","label":"cull"}]',
+            tips: '解析 <strong>url_labels / 1_url_labels</strong> 新格式；如果输入是两列数据，会自动把解析出的图片链接与对应<strong>对象ID</strong>绑定。最终输出固定为 <strong>3列 TSV：对象ID、图片链接、label值</strong>。'
+          }
+        };
+        const sampleText = {
+          migration: 'obj_001\treserve_urls: ["https://img.example.com/a.jpg","https://img.example.com/b.jpg"]\nobj_002\tlegacy_payload: {"items":[{"url":"https://img.example.com/c.jpg","label":"cull"},{"url":"https://img.example.com/d.jpg","label":"reserve"}]}',
+          annotation: 'obj_001\t1_url_labels: [{"url":"https://img.example.com/a.jpg","label":"reserve"},{"url":"https://img.example.com/b.jpg","label":"reserve"}]\nobj_002\turl_labels: [{"url":"https://img.example.com/c.jpg","label":"cull"}]'
+        };
+
+        const normalizeText = (text = '') => text.replace(/\r?\n|\r/g, '').trim();
+        const escapeRegExp = (text = '') => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const showToast = (msg) => { toastMsg.value = msg; if (toastTimer) clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastMsg.value = ''; toastTimer = null; }, TOAST_DURATION); };
+        const copyText = async (text, successMsg = '复制成功') => {
+          try {
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+            else {
+              const textarea = document.createElement('textarea'); textarea.value = text; textarea.setAttribute('readonly', 'readonly'); textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+            }
+            showToast(successMsg);
+          } catch (error) { console.error('复制失败：', error); showToast('复制失败，请手动复制'); }
+        };
+
+        const findSegmentById = (id) => segmenter.segments.find(segment => segment.id === id);
+        const createSegment = (text) => ({ id: nextSegmentId++, originalText: text, modifiedText: text, selectedWords: [], linkedSelectionCount: 0, autoLinkedWords: [], isEditing: false, isHighlighted: false, errorMsg: null });
+        const getSegmentOutput = (segment) => `${segment.selectedWords.length > 0 ? `[${segment.selectedWords.join(' ')}]` : ''}${normalizeText(segment.modifiedText)}`;
+        const resetValidationState = () => { segmenter.isAllQualified = false; segmenter.segments.forEach(segment => { segment.errorMsg = null; }); };
+        const segmenterQualifiedCount = computed(() => segmenter.segments.filter(segment => getSegmentError(segment) === null).length);
+        const findLastSplitPosition = (text, maxLength) => { const end = Math.min(text.length, maxLength); for (let cursor = end - 1; cursor >= 0; cursor -= 1) { const char = text[cursor]; if (FALLBACK_SPLIT_PUNCTUATION.has(char) || /\s/.test(char)) return cursor + 1; } return -1; };
+        const splitLongSentence = (sentence) => { const normalizedSentence = sentence.trim(); if (normalizedSentence.length <= MAX_SEGMENT_LENGTH) return [normalizedSentence]; const chunks = []; let remaining = normalizedSentence; while (remaining.length > MAX_SEGMENT_LENGTH) { const splitPosition = findLastSplitPosition(remaining, MAX_SEGMENT_LENGTH); const safeSplitPosition = splitPosition > 0 ? splitPosition : MAX_SEGMENT_LENGTH; chunks.push(remaining.slice(0, safeSplitPosition).trim()); remaining = remaining.slice(safeSplitPosition).trim(); } if (remaining) chunks.push(remaining); return chunks.filter(Boolean); };
+        const isEnglishChar = (char = '') => /[A-Za-z0-9]/.test(char);
+        const getPrevNonSpaceChar = (text, index) => { for (let cursor = index - 1; cursor >= 0; cursor -= 1) if (!/\s/.test(text[cursor])) return text[cursor]; return ''; };
+        const getNextNonSpaceChar = (text, index) => { for (let cursor = index + 1; cursor < text.length; cursor += 1) if (!/\s/.test(text[cursor])) return text[cursor]; return ''; };
+        const splitTextIntoSentences = (text) => { const sentences = []; let current = ''; for (let index = 0; index < text.length; index += 1) { const char = text[index]; current += char; const isChinesePunctuation = /[。！？!?]/.test(char); const isEnglishPeriod = char === '.' && isEnglishChar(getPrevNonSpaceChar(text, index)) && isEnglishChar(getNextNonSpaceChar(text, index)); if (isChinesePunctuation || isEnglishPeriod) { sentences.push(current.trim()); current = ''; } } if (current.trim()) sentences.push(current.trim()); return sentences.filter(Boolean); };
+        const isFlexibleSplitChar = (char = '') => FALLBACK_SPLIT_PUNCTUATION.has(char) || /\s/.test(char);
+        const findNearestFlexibleSplitPosition = (text, targetIndex, minIndex, maxIndex) => { const safeMinIndex = Math.max(1, minIndex); const safeMaxIndex = Math.min(text.length - 1, maxIndex); if (safeMinIndex > safeMaxIndex) return Math.min(Math.max(targetIndex, 1), text.length - 1); const clampedTarget = Math.min(Math.max(targetIndex, safeMinIndex), safeMaxIndex); const maxDistance = Math.max(clampedTarget - safeMinIndex, safeMaxIndex - clampedTarget); for (let distance = 0; distance <= maxDistance; distance += 1) { const rightIndex = clampedTarget + distance; if (rightIndex <= safeMaxIndex && isFlexibleSplitChar(text[rightIndex - 1])) return rightIndex; const leftIndex = clampedTarget - distance; if (leftIndex >= safeMinIndex && isFlexibleSplitChar(text[leftIndex - 1])) return leftIndex; } return clampedTarget; };
+        const splitMergedSegmentsEvenly = (text, segmentCount) => { const mergedText = text.trim(); if (!mergedText) return []; const normalizedSegmentCount = Math.max(2, segmentCount); const rebalancedSegments = []; let startIndex = 0; for (let index = 0; index < normalizedSegmentCount; index += 1) { const remainingSegments = normalizedSegmentCount - index; const remainingLength = mergedText.length - startIndex; if (remainingSegments === 1) { rebalancedSegments.push(mergedText.slice(startIndex).trim()); break; } const targetLength = Math.max(1, Math.floor(remainingLength / remainingSegments)); const targetIndex = startIndex + targetLength; const minIndex = startIndex + 1; const maxIndex = mergedText.length - (remainingSegments - 1); const splitIndex = findNearestFlexibleSplitPosition(mergedText, targetIndex, minIndex, maxIndex); rebalancedSegments.push(mergedText.slice(startIndex, splitIndex).trim()); startIndex = splitIndex; } return rebalancedSegments.filter(Boolean); };
+        const rebalanceTrailingShortSegments = (segmentList) => { const normalizedSegments = segmentList.filter(Boolean); if (normalizedSegments.length < 2) return normalizedSegments; const lastSegment = normalizedSegments[normalizedSegments.length - 1]; if (lastSegment.length >= MIN_SEGMENT_LENGTH) return normalizedSegments; const mergedText = `${normalizedSegments[normalizedSegments.length - 2]}${lastSegment}`.trim(); const rebalancedSegments = splitMergedSegmentsEvenly(mergedText, 2); return [...normalizedSegments.slice(0, -2), ...rebalancedSegments]; };
+        const splitTextIntoSegments = (text) => { const normalized = normalizeText(text); if (!normalized) return []; const sentences = splitTextIntoSentences(normalized); const initialSegments = sentences.reduce((result, sentence) => { splitLongSentence(sentence).forEach((part) => { const lastIndex = result.length - 1; const currentSegment = result[lastIndex] || ''; if (currentSegment && currentSegment.length + part.length > MAX_SEGMENT_LENGTH) { result.push(part.trim()); return; } result[lastIndex] = `${currentSegment}${part}`.trim(); }); return result; }, ['']).filter(Boolean); return rebalanceTrailingShortSegments(initialSegments); };
+        const clearSegmenterInput = () => { if (!confirm('确定要清空全部内容吗？')) return; segmenter.inputText = ''; segmenter.segments = []; segmenter.isAllQualified = false; showToast('已清空全部内容'); };
+        const handleSegmentText = () => { const rawSegments = splitTextIntoSegments(segmenter.inputText); if (rawSegments.length === 0) return; segmenter.segments = rawSegments.map(createSegment); resetValidationState(); showToast(`已生成 ${segmenter.segments.length} 个段落`); };
+        const deleteSegment = (id) => { segmenter.segments = segmenter.segments.filter(segment => segment.id !== id); resetValidationState(); showToast('已删除该段落'); };
+        const toggleEditing = (id) => { const segment = findSegmentById(id); if (!segment) return; segment.isEditing = !segment.isEditing; if (!segment.isEditing) segment.modifiedText = segment.modifiedText.trim(); resetValidationState(); };
+        const clearAllSelections = (id) => { const segment = findSegmentById(id); if (!segment || segment.selectedWords.length === 0) return; segment.selectedWords = []; segment.autoLinkedWords = []; segment.linkedSelectionCount = 0; resetValidationState(); showToast('已清空当前段落划词'); };
+        const undoLastSelection = (id) => { const segment = findSegmentById(id); if (!segment || segment.selectedWords.length === 0) return; const lastWord = segment.selectedWords[segment.selectedWords.length - 1]; segment.selectedWords = segment.selectedWords.slice(0, -1); if (segment.autoLinkedWords.includes(lastWord)) { const linkedWordIndex = segment.autoLinkedWords.lastIndexOf(lastWord); segment.autoLinkedWords.splice(linkedWordIndex, 1); segment.linkedSelectionCount = Math.max(0, segment.linkedSelectionCount - 1); } resetValidationState(); showToast('已撤销上一个划词'); };
+        const getLinkedSelectionToast = (word, matchedCount, skippedCount, actionType) => { const reachedLimit = skippedCount > 0; if (actionType === 'add') { if (matchedCount === 0) return reachedLimit ? `已提取: ${word}，部分后续段落已达联动上限` : `已提取: ${word}`; if (reachedLimit) return `已提取: ${word}，并同步到后续 ${matchedCount} 段（部分段落已达联动上限）`; return `已提取: ${word}，并同步到后续 ${matchedCount} 段`; } if (matchedCount === 0) return reachedLimit ? `${word} 未继续同步，后续目标段落已达联动上限` : `已存在: ${word}`; if (reachedLimit) return `已将 ${word} 同步到后续 ${matchedCount} 段（部分段落已达联动上限）`; return `已将 ${word} 同步到后续 ${matchedCount} 段`; };
+        const syncSelectedWordToFollowingSegments = (id, word) => { const currentIndex = segmenter.segments.findIndex(segment => segment.id === id); if (currentIndex === -1) return { matchedCount: 0, skippedCount: 0 }; let matchedCount = 0; let skippedCount = 0; for (let index = currentIndex + 1; index < segmenter.segments.length; index += 1) { const segment = segmenter.segments[index]; if (!normalizeText(segment.modifiedText).includes(word)) continue; if (segment.selectedWords.includes(word)) continue; if (segment.linkedSelectionCount >= MAX_LINKED_SELECTION_COUNT) { skippedCount += 1; continue; } segment.selectedWords = [...segment.selectedWords, word]; segment.autoLinkedWords = [...segment.autoLinkedWords, word]; segment.linkedSelectionCount += 1; matchedCount += 1; } return { matchedCount, skippedCount }; };
+        const handleMouseUp = (event, id) => { const selection = window.getSelection(); const selectedText = selection?.toString().trim(); if (!selection || !selectedText || selection.rangeCount === 0) return; const segment = findSegmentById(id); const container = event.currentTarget; const range = selection.getRangeAt(0); const targetNode = range.commonAncestorContainer; const isInsideSegment = container.contains(targetNode.nodeType === Node.TEXT_NODE ? targetNode.parentNode : targetNode); if (segment && isInsideSegment) { if (!segment.selectedWords.includes(selectedText)) { segment.selectedWords = [...segment.selectedWords, selectedText]; const { matchedCount, skippedCount } = syncSelectedWordToFollowingSegments(id, selectedText); resetValidationState(); showToast(getLinkedSelectionToast(selectedText, matchedCount, skippedCount, 'add')); } else { const { matchedCount, skippedCount } = syncSelectedWordToFollowingSegments(id, selectedText); if (matchedCount > 0) resetValidationState(); showToast(getLinkedSelectionToast(selectedText, matchedCount, skippedCount, 'sync')); } } selection.removeAllRanges(); };
+        const copySegment = (segment) => copyText(getSegmentOutput(segment), '复制成功！');
+        const getSegmentError = (segment) => { const cleanText = normalizeText(segment.modifiedText); if (cleanText.startsWith('[]')) return "段落开头包含非法字符 '[]'"; if (cleanText.length < MIN_SEGMENT_LENGTH) return `段落长度低于 ${MIN_SEGMENT_LENGTH} 字（建议删除）`; if (!segmenter.noQualifierMode && segment.selectedWords.length === 0) return '尚未划选提取词语'; return null; };
+        const checkAllSegments = () => { const errors = segmenter.segments.map(segment => { const errorMsg = getSegmentError(segment); segment.errorMsg = errorMsg; return errorMsg; }); segmenter.isAllQualified = errors.every(errorMsg => errorMsg === null); showToast(segmenter.isAllQualified ? '检查完毕：所有段落合格' : '检查完毕：存在不合格内容'); };
+        const copyAllAsTable = () => { if (!segmenter.isAllQualified) { showToast('请先进行“检查状态”并确保全部合格'); return; } if (segmenter.segments.length === 0) return; copyText(segmenter.segments.map(getSegmentOutput).join('\n'), '复制成功！'); };
+        const highlightSegment = (segment) => { segment.isHighlighted = true; setTimeout(() => { segment.isHighlighted = false; }, TOAST_DURATION); };
+        const scrollToFirstUnqualified = () => { const first = segmenter.segments.find(segment => getSegmentError(segment) !== null); if (!first) { showToast('没有发现不合格内容！'); return; } const element = document.getElementById(`seg-${first.id}`); if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); highlightSegment(first); } };
+        const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        const batchNormalizeQualifier = (text = '') => text.replace(/[\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+        const batchSplitLines = (text = '') => text.replace(/\r\n/g, '\n').split('\n').map(item => item.trim()).filter(Boolean);
+        const batchBuildFinalText = (row) => `${row.qualifiers.length ? `[${row.qualifiers.join(' ')}]` : ''}${row.text.trim()}`;
+        const batchResetCheck = () => { batchSelector.checkPassed = false; batchTodoPointer = -1; };
+        const batchSyncRowsFromInput = (text) => {
+          const lines = batchSplitLines(text);
+          const existing = batchSelector.rows.slice();
+          batchSelector.rows = lines.map((line) => {
+            const foundIndex = existing.findIndex(item => item.baseLine === line);
+            if (foundIndex > -1) {
+              const found = existing.splice(foundIndex, 1)[0];
+              found.baseLine = line;
+              found.finalText = batchBuildFinalText(found);
+              return found;
+            }
+            const row = { id: batchNextId++, baseLine: line, text: line, qualifiers: [], history: [], isEditing: false, finalText: line };
+            row.finalText = batchBuildFinalText(row);
+            return row;
+          });
+          batchResetCheck();
+        };
+        watch(() => batchSelector.inputText, (value) => { batchSyncRowsFromInput(value); }, { immediate: true });
+        watch(() => batchSelector.rows, (value) => { value.forEach(row => { row.finalText = batchBuildFinalText(row); }); }, { deep: true });
+        const batchGetRowStatus = (row) => {
+          const tooShort = row.text.trim().length < 20;
+          const shortPending = tooShort && row.qualifiers.length === 0;
+          const overLimit = row.finalText.length > 500;
+          return { hasQualifier: row.qualifiers.length > 0, tooShort, shortPending, overLimit, ready: row.qualifiers.length > 0 && !shortPending && !overLimit };
+        };
+        const batchStatusSummary = computed(() => {
+          const summary = { withQualifier: 0, withoutQualifier: 0, tooShortPending: 0, overLimit: 0, ready: 0 };
+          batchSelector.rows.forEach(row => {
+            const status = batchGetRowStatus(row);
+            if (status.hasQualifier) summary.withQualifier += 1; else summary.withoutQualifier += 1;
+            if (status.shortPending) summary.tooShortPending += 1;
+            if (status.overLimit) summary.overLimit += 1;
+            if (status.ready) summary.ready += 1;
+          });
+          return summary;
+        });
+        const batchProgressWidth = computed(() => batchSelector.rows.length ? `${(batchStatusSummary.value.ready / batchSelector.rows.length) * 100}%` : '0%');
+        const batchCanCopyTable = computed(() => batchSelector.rows.length > 0 && batchSelector.checkPassed);
+        const batchRowCardClass = (row) => {
+          const status = batchGetRowStatus(row);
+          if (status.overLimit) return 'border-rose-200 bg-rose-50/40 ring-1 ring-rose-100';
+          if (status.shortPending || !status.hasQualifier) return 'border-amber-200 bg-amber-50/30';
+          return 'border-slate-200 hover:border-indigo-200';
+        };
+        const batchApplyQualifierToRow = (row, qualifier, source = 'selection') => {
+          const normalized = batchNormalizeQualifier(qualifier);
+          if (!normalized) return { added: false, reason: 'empty' };
+          if (row.qualifiers.some(item => batchNormalizeQualifier(item) === normalized)) return { added: false, reason: 'duplicate' };
+          if (source === 'batch' && row.qualifiers.length >= 2) return { added: false, reason: 'limit' };
+          row.qualifiers.push(normalized);
+          row.history.push({ type: source, value: normalized });
+          batchResetCheck();
+          return { added: true, reason: 'ok' };
+        };
+        const batchApplyQualifier = () => {
+          const normalized = batchNormalizeQualifier(batchSelector.batchQualifierInput);
+          if (!normalized) return showToast('请先输入限定词');
+          if (!batchSelector.rows.length) return showToast('请先输入正文内容');
+          let matched = 0, changed = 0, limited = 0, blockedShort = 0;
+          batchSelector.rows.forEach(row => {
+            if (!row.text.includes(normalized)) return;
+            if (row.text.trim().length < 20) { blockedShort += 1; return; }
+            matched += 1;
+            const result = batchApplyQualifierToRow(row, normalized, 'batch');
+            if (result.added) changed += 1;
+            if (result.reason === 'limit') limited += 1;
+          });
+          batchSelector.batchQualifierInput = '';
+          if (!matched && blockedShort === 0) return showToast(`未搜索到“${normalized}”，因此没有添加`);
+          if (!changed) {
+            if (blockedShort > 0 && matched === 0) return showToast(`命中了 ${blockedShort} 条短段落，但短段落不支持批量添加`);
+            return showToast(limited ? `命中了 ${matched} 行，但这些行通过批量添加加入的限定词已达 2 个上限` : `命中了 ${matched} 行，但无需重复添加${blockedShort ? `；另有 ${blockedShort} 条短段落未处理` : ''}`);
+          }
+          showToast(`搜索命中 ${matched} 行，成功添加到 ${changed} 行${limited ? `，另有 ${limited} 行已达 2 个上限` : ''}${blockedShort ? `；${blockedShort} 条短段落未开放批量添加` : ''}`);
+        };
+        const batchCaptureSelection = (event, rowId) => {
+          const selection = window.getSelection();
+          const text = batchNormalizeQualifier(selection ? selection.toString() : '');
+          if (!text) return;
+          const row = batchSelector.rows.find(item => item.id === rowId);
+          if (!row) return;
+          const result = batchApplyQualifierToRow(row, text, 'selection');
+          if (selection) selection.removeAllRanges();
+          showToast(result.added ? `已框选限定词：${text}` : '该限定词已存在');
+        };
+        const batchUndoSelection = (rowId) => {
+          const row = batchSelector.rows.find(item => item.id === rowId);
+          if (!row || !row.history.length) return;
+          const last = row.history.pop();
+          const matchIndex = row.qualifiers.map(item => batchNormalizeQualifier(item)).lastIndexOf(batchNormalizeQualifier(last.value));
+          if (matchIndex > -1) row.qualifiers.splice(matchIndex, 1);
+          batchResetCheck();
+          showToast('已撤销最近一次框选 / 添加');
+        };
+        const batchClearSelections = (rowId) => {
+          const row = batchSelector.rows.find(item => item.id === rowId);
+          if (!row) return;
+          row.qualifiers = [];
+          row.history = [];
+          batchResetCheck();
+          showToast('已清除本行全部限定词');
+        };
+        const batchClearAllQualifiers = () => {
+          if (!batchSelector.rows.some(row => row.qualifiers.length > 0)) return showToast('当前没有可清除的限定词');
+          batchSelector.rows.forEach(row => { row.qualifiers = []; row.history = []; });
+          batchResetCheck();
+          showToast('已清除全部限定词');
+        };
+        const batchToggleEdit = (rowId) => {
+          const row = batchSelector.rows.find(item => item.id === rowId);
+          if (!row) return;
+          row.isEditing = !row.isEditing;
+          if (!row.isEditing) row.text = row.text.trim();
+          batchResetCheck();
+        };
+        const batchDeleteRow = (rowId) => {
+          batchSelector.rows = batchSelector.rows.filter(item => item.id !== rowId);
+          batchResetCheck();
+          showToast('已删除本段');
+        };
+        const batchCopyRow = (rowId) => {
+          const row = batchSelector.rows.find(item => item.id === rowId);
+          if (!row) return;
+          copyText(row.finalText, '已复制本段文字');
+        };
+        const batchClearAll = () => {
+          if (!batchSelector.rows.length && !batchSelector.inputText && !batchSelector.batchQualifierInput) return;
+          if (!confirm('确定要清空全部输入和拆分结果吗？')) return;
+          batchSelector.inputText = '';
+          batchSelector.batchQualifierInput = '';
+          batchSelector.rows = [];
+          batchResetCheck();
+          showToast('已清空全部内容');
+        };
+        const batchRunCheck = () => {
+          if (!batchSelector.rows.length) return showToast('当前还没有可检查的段落');
+          const passed = batchSelector.rows.every(row => { const status = batchGetRowStatus(row); return status.hasQualifier && !status.shortPending && !status.overLimit; });
+          batchSelector.checkPassed = passed;
+          if (passed) return showToast('检查通过，已开启表格复制');
+          showToast(`检查完成：无限定词 ${batchStatusSummary.value.withoutQualifier} 行，字数不足 ${batchStatusSummary.value.tooShortPending} 行，超过 500 字 ${batchStatusSummary.value.overLimit} 行`);
+        };
+        const batchFindTodoRows = () => batchSelector.rows.filter(row => { const status = batchGetRowStatus(row); return !status.hasQualifier || status.shortPending || status.overLimit; });
+        const batchGoToNextTodo = () => {
+          const todoRows = batchFindTodoRows();
+          if (!todoRows.length) return showToast('当前没有待办行');
+          batchTodoPointer = (batchTodoPointer + 1) % todoRows.length;
+          const target = todoRows[batchTodoPointer];
+          const element = document.getElementById(`batch-row-${target.id}`);
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          showToast(`已定位到第 ${batchSelector.rows.findIndex(item => item.id === target.id) + 1} 行`);
+        };
+        const batchCopyTable = () => {
+          if (!batchCanCopyTable.value) return showToast('请先检查通过后再复制表格');
+          copyText(batchSelector.rows.map((row) => row.finalText).join('\\n'), '已复制表格格式内容');
+        };
+
+        const removeConfiguredTerms = (text = '') => { let result = text; filter.removalTerms.forEach((term) => { if (!term) return; result = result.replace(new RegExp(escapeRegExp(term), 'g'), ''); }); return result; };
+        const handleFilterProcessText = () => { filter.processedText = normalizeText(removeConfiguredTerms(filter.inputText)); showToast(filter.processedText ? '文本处理完成' : '处理完成，但结果为空'); };
+        const clearFilterAll = () => { if (!confirm('确定要清空全部内容吗？')) return; filter.inputText = ''; filter.processedText = ''; filter.newTerm = ''; filter.removalTerms = [...DEFAULT_TERMS]; showToast('已清空全部内容'); };
+        const addFilterTerm = () => { const value = filter.newTerm.trim(); if (!value) return showToast('请输入要添加的词组'); if (filter.removalTerms.includes(value)) return showToast('该词组已存在'); filter.removalTerms.push(value); filter.newTerm = ''; showToast('已添加剔除词组'); };
+        const removeFilterTerm = (index) => { filter.removalTerms.splice(index, 1); showToast('已删除剔除词组'); };
+        const copyProcessedText = () => { if (!filter.processedText) return showToast('暂无可复制内容'); copyText(filter.processedText); };
+
+        const updateImageStats = () => { const total = image.links.length; const selected = image.selectedUrls.size; image.statsText = total === 0 ? '识别到 0 张图片' : `识别到 ${total} 张图片 | 已选中 ${selected} 张`; };
+        const extractImageLinks = (text) => { const links = new Set(); REGEX_URL.lastIndex = 0; let match; while ((match = REGEX_URL.exec(text)) !== null) links.add(match[0]); return Array.from(links); };
+        const observeImages = async () => { await nextTick(); if (imageObserver) imageObserver.disconnect(); imageObserver = new IntersectionObserver((entries, observer) => { entries.forEach(entry => { if (entry.isIntersecting) { const img = entry.target; img.src = img.dataset.src; img.onload = () => { img.style.opacity = '1'; }; observer.unobserve(img); } }); }); document.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img)); };
+        const renderImageGallery = (links) => { image.links = links; image.selectedUrls = new Set(); updateImageStats(); observeImages(); };
+        const renderImageGalleryFromInput = () => renderImageGallery(extractImageLinks(image.inputText));
+        const toggleImageSelect = (url) => { const nextSet = new Set(image.selectedUrls); nextSet.has(url) ? nextSet.delete(url) : nextSet.add(url); image.selectedUrls = nextSet; updateImageStats(); };
+        const getImageFilename = (url) => { try { return url.split('/').pop().split('?')[0] || '未命名图片'; } catch { return '未命名图片'; } };
+        const openImageLightbox = (url) => { lightbox.url = url; lightbox.visible = true; };
+        const closeLightbox = () => { lightbox.visible = false; lightbox.url = ''; };
+        const copySingleImageLink = (url) => copyText(url, '已复制链接');
+        const copySelectedImageLinks = () => { if (image.selectedUrls.size === 0) return alert('请先选择需要复制链接的图片'); copyText(Array.from(image.selectedUrls).join('\n'), `已复制 ${image.selectedUrls.size} 个链接`); };
+        const clearImageAll = () => { image.inputText = ''; renderImageGallery([]); };
+        const handleImageInput = () => { if (imageDebounceTimer) clearTimeout(imageDebounceTimer); imageDebounceTimer = setTimeout(() => renderImageGalleryFromInput(), 300); };
+
+        const urlExtractModeName = computed(() => modeConfig[urlExtract.mode].name);
+        const urlExtractModeTips = computed(() => modeConfig[urlExtract.mode].tips);
+        const urlExtractModePlaceholder = computed(() => modeConfig[urlExtract.mode].placeholder);
+        const urlExtractReserveCount = computed(() => urlExtract.records.filter(item => item.label === 'reserve').length);
+        const urlExtractCullCount = computed(() => urlExtract.records.filter(item => item.label === 'cull').length);
+        const normalizeLabel = (label) => { const text = String(label || '').trim().toLowerCase(); return text || 'unknown'; };
+        const setUrlExtractMode = (mode) => { urlExtract.mode = mode; };
+        const clearUrlExtract = () => { urlExtract.inputText = ''; urlExtract.records = []; urlExtract.outputText = ''; urlExtract.resultMeta = ''; showToast('已清空内容'); };
+        const loadUrlExtractSample = () => { urlExtract.inputText = sampleText[urlExtract.mode]; };
+        const splitUrlExtractInputBlocks = (rawText) => {
+          const lines = rawText.split(/\r?\n/);
+          const tabRows = lines.filter(line => line.includes('\t') && line.trim()).length;
+          const looksLikeTwoColumns = tabRows > 0 && tabRows >= Math.max(1, Math.ceil(lines.filter(line => line.trim()).length * 0.6));
+          if (!looksLikeTwoColumns) return [{ objectId: '', payload: rawText }];
+          return lines.filter(line => line.trim()).map((line) => { const parts = line.split('\t'); const objectId = String(parts.shift() || '').trim(); const payload = parts.join('\t').trim(); return { objectId, payload }; }).filter(item => item.payload);
+        };
+        const parseMigrationMode = (text, objectId = '') => {
+          const records = []; const seen = new Set();
+          const pushRecord = (url, label, source) => { const cleanUrl = String(url || '').trim(); if (!cleanUrl) return; const cleanLabel = normalizeLabel(label || 'reserve'); const key = `${objectId}__${cleanUrl}__${cleanLabel}`; if (seen.has(key)) return; seen.add(key); records.push({ objectId, url: cleanUrl, label: cleanLabel, source }); };
+          const objectRegex = /\{[^{}]*?"url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?"label"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?\}|\{[^{}]*?"label"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?"url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?\}/g;
+          let match; while ((match = objectRegex.exec(text)) !== null) { if (match[1] && match[2]) pushRecord(match[1], match[2], 'legacy-object'); else if (match[3] && match[4]) pushRecord(match[4], match[3], 'legacy-object'); }
+          const reserveMatch = text.match(/reserve_urls\s*:\s*\[(.*?)\]/s); if (reserveMatch) { const urlRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"/g; let urlMatch; while ((urlMatch = urlRegex.exec(reserveMatch[1])) !== null) pushRecord(urlMatch[1], 'reserve', 'reserve_urls'); }
+          const loosePairRegex = /url\s*[:=]\s*"([^"]+)"[\s\S]{0,120}?label\s*[:=]\s*"([^"]+)"|label\s*[:=]\s*"([^"]+)"[\s\S]{0,120}?url\s*[:=]\s*"([^"]+)"/g;
+          while ((match = loosePairRegex.exec(text)) !== null) { if (match[1] && match[2]) pushRecord(match[1], match[2], 'loose-pair'); else if (match[3] && match[4]) pushRecord(match[4], match[3], 'loose-pair'); }
+          return records;
+        };
+        const parseAnnotationMode = (text, objectId = '') => {
+          const prefixMatch = text.match(/(?:1_)?url_labels\s*:\s*(\[[\s\S]*?\])/);
+          const jsonText = prefixMatch ? prefixMatch[1] : text;
+          try {
+            const parsed = JSON.parse(jsonText); if (!Array.isArray(parsed)) return [];
+            return parsed.map((item) => ({ objectId, url: String(item.url || '').trim(), label: normalizeLabel(item.label), source: 'url_labels' })).filter(item => item.url);
+          } catch {
+            const fallback = []; const regex = /\{[^{}]*?"url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?"label"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?\}|\{[^{}]*?"label"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?"url"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"[^{}]*?\}/g;
+            let match; while ((match = regex.exec(jsonText)) !== null) { if (match[1] && match[2]) fallback.push({ objectId, url: match[1], label: normalizeLabel(match[2]), source: 'url_labels-fallback' }); else if (match[3] && match[4]) fallback.push({ objectId, url: match[4], label: normalizeLabel(match[3]), source: 'url_labels-fallback' }); }
+            return fallback;
+          }
+        };
+        const buildUrlExtractOutput = (records) => ['对象ID\t图片链接\tlabel值'].concat(records.map(item => `${item.objectId || ''}\t${item.url}\t${item.label}`)).join('\n');
+        const processUrlExtract = () => {
+          const rawText = urlExtract.inputText.trim(); if (!rawText) return alert('请先输入待处理内容');
+          const inputBlocks = splitUrlExtractInputBlocks(rawText); const records = [];
+          inputBlocks.forEach((block) => { const parsed = urlExtract.mode === 'migration' ? parseMigrationMode(block.payload, block.objectId) : parseAnnotationMode(block.payload, block.objectId); records.push(...parsed); });
+          if (!records.length) return alert('未解析到有效数据，请检查输入格式');
+          urlExtract.records = records; urlExtract.outputText = buildUrlExtractOutput(records); urlExtract.resultMeta = `${modeConfig[urlExtract.mode].name} · 已生成 ${records.length} 条记录 · 表格展示 + CSV 下载`; showToast(`已解析 ${records.length} 条记录`);
+        };
+        const copyUrlExtractOutput = () => { if (!urlExtract.outputText) return; copyText(urlExtract.outputText, '已复制表格数据'); };
+        const downloadUrlExtractCsv = () => {
+          if (!urlExtract.records.length) return alert('暂无可下载的数据');
+          const escapeCsvValue = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+          const csvRows = [['对象ID', '图片链接', 'label值'], ...urlExtract.records.map(item => [item.objectId || '', item.url, item.label])];
+          const csvContent = '\uFEFF' + csvRows.map(row => row.map(escapeCsvValue).join(',')).join('\n');
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${urlExtract.mode === 'migration' ? '消重清洗' : '风险域'}_结果.csv`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+        };
+
+        const imgJudgeCtx = computed(() => judgeCanvas.value ? judgeCanvas.value.getContext('2d', { willReadFrequently: true }) : null);
+        const setJudgeStatus = (text) => { imgJudge.status = text; };
+        const updateJudgeSummary = (total, solid, blur, normal) => { imgJudge.total = total; imgJudge.solidCount = solid; imgJudge.blurCount = blur; imgJudge.normalCount = normal; };
+        const visibleResults = computed(() => imgJudge.results.slice(0, imgJudge.displayLimit));
+        imgJudge.visibleResults = visibleResults.value;
+        watch(visibleResults, (val) => { imgJudge.visibleResults = val; });
+        const getImageJudgeBadgeClass = (label) => label.includes('纯色') ? 'bg-amber-50 text-amber-700' : label.includes('模糊') ? 'bg-rose-50 text-rose-700' : label.includes('正常') ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600';
+        const fillImageJudgeSample = () => { imgJudge.inputText = ['https://via.placeholder.com/400x300/ffffff/ffffff.png','https://via.placeholder.com/400x300/000000/000000.png','https://picsum.photos/seed/demo1/600/400','https://picsum.photos/seed/demo2/500/500'].join('\n'); };
+        const clearImageJudgeAll = () => { imgJudge.inputText = ''; imgJudge.results = []; updateJudgeSummary(0, 0, 0, 0); setJudgeStatus('已清空。'); };
+        const copyImageJudgeResults = () => { if (!imgJudge.results.length) return; const lines = ['图片链接\t是否符合条件']; imgJudge.results.forEach(item => lines.push(`${item.url}\t${item.label}`)); copyText(lines.join('\n'), '结果表格已复制到剪贴板。'); };
+        const tryLoadByImage = (url) => new Promise(resolve => { const img = new Image(); img.crossOrigin = 'anonymous'; img.referrerPolicy = 'no-referrer'; img.decoding = 'async'; img.onload = () => resolve({ ok: true, source: img }); img.onerror = () => resolve({ ok: false, error: '图片标签加载失败或被拒绝' }); img.src = url; });
+        const tryLoadByFetch = async (url) => {
+          try {
+            const resp = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`); const blob = await resp.blob(); if (!blob.type.startsWith('image/')) throw new Error(`返回内容不是图片：${blob.type || 'unknown'}`);
+            if ('createImageBitmap' in window) return { ok: true, source: await createImageBitmap(blob) };
+            const objectUrl = URL.createObjectURL(blob);
+            try {
+              const loaded = await new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(new Error('blob 图片解码失败')); img.src = objectUrl; });
+              return { ok: true, source: loaded };
+            } finally { setTimeout(() => URL.revokeObjectURL(objectUrl), 1000); }
+          } catch (error) { return { ok: false, error: error?.message || String(error) }; }
+        };
+        const loadImageSource = async (url) => { const imgAttempt = await tryLoadByImage(url); if (imgAttempt.ok) return imgAttempt.source; const fetchAttempt = await tryLoadByFetch(url); if (fetchAttempt.ok) return fetchAttempt.source; throw new Error([imgAttempt.error ? `img: ${imgAttempt.error}` : '', fetchAttempt.error ? `fetch: ${fetchAttempt.error}` : ''].filter(Boolean).join(' | ') || '未知加载错误'); };
+        const computeEdgeStats = (gray, width, height) => { if (width < 3 || height < 3) return { laplacianVariance: 0, edgeMeanAbs: 0, strongEdgeRatio: 0 }; let sum = 0, sumSq = 0, absSum = 0, strongEdgeCount = 0, count = 0; const strongEdgeThreshold = 12; for (let y = 1; y < height - 1; y++) { const row = y * width; for (let x = 1; x < width - 1; x++) { const idx = row + x; const lap = gray[idx - width] + gray[idx - 1] - 4 * gray[idx] + gray[idx + 1] + gray[idx + width]; const absLap = Math.abs(lap); sum += lap; sumSq += lap * lap; absSum += absLap; if (absLap >= strongEdgeThreshold) strongEdgeCount++; count++; } } if (!count) return { laplacianVariance: 0, edgeMeanAbs: 0, strongEdgeRatio: 0 }; const mean = sum / count; return { laplacianVariance: sumSq / count - mean * mean, edgeMeanAbs: absSum / count, strongEdgeRatio: strongEdgeCount / count }; };
+        const extractMetrics = (imageSource) => {
+          const canvas = judgeCanvas.value; const ctx = imgJudgeCtx.value; const maxSide = 512; const width = imageSource.naturalWidth || imageSource.videoWidth || imageSource.width; const height = imageSource.naturalHeight || imageSource.videoHeight || imageSource.height; const scale = Math.min(1, maxSide / Math.max(width, height)); const drawWidth = Math.max(1, Math.round(width * scale)); const drawHeight = Math.max(1, Math.round(height * scale)); canvas.width = drawWidth; canvas.height = drawHeight; ctx.clearRect(0, 0, drawWidth, drawHeight); ctx.drawImage(imageSource, 0, 0, drawWidth, drawHeight);
+          const { data } = ctx.getImageData(0, 0, drawWidth, drawHeight); const pixelCount = drawWidth * drawHeight; const gray = new Float32Array(pixelCount); let sumR = 0, sumG = 0, sumB = 0, graySum = 0;
+          for (let i = 0, p = 0; i < data.length; i += 4, p++) { const r = data[i], g = data[i + 1], b = data[i + 2]; const grayVal = 0.299 * r + 0.587 * g + 0.114 * b; gray[p] = grayVal; sumR += r; sumG += g; sumB += b; graySum += grayVal; }
+          const meanR = sumR / pixelCount, meanG = sumG / pixelCount, meanB = sumB / pixelCount, grayMean = graySum / pixelCount; let varR = 0, varG = 0, varB = 0, grayVar = 0;
+          for (let i = 0, p = 0; i < data.length; i += 4, p++) { const dr = data[i] - meanR, dg = data[i + 1] - meanG, db = data[i + 2] - meanB, dGray = gray[p] - grayMean; varR += dr * dr; varG += dg * dg; varB += db * db; grayVar += dGray * dGray; }
+          varR /= pixelCount; varG /= pixelCount; varB /= pixelCount; grayVar /= pixelCount; const edgeStats = computeEdgeStats(gray, drawWidth, drawHeight);
+          return { width: drawWidth, height: drawHeight, rgbStdDev: Math.sqrt((varR + varG + varB) / 3), grayStdDev: Math.sqrt(grayVar), laplacianVariance: edgeStats.laplacianVariance, edgeMeanAbs: edgeStats.edgeMeanAbs, strongEdgeRatio: edgeStats.strongEdgeRatio };
+        };
+        const isExtremeBlur = (metrics, blurThreshold) => metrics.laplacianVariance < blurThreshold && metrics.edgeMeanAbs < 6 && (metrics.grayStdDev < 28 || metrics.strongEdgeRatio < 0.015);
+        const analyzeImageUrl = async (url, options) => {
+          try {
+            const bitmapSource = await loadImageSource(url); const metrics = extractMetrics(bitmapSource); if (bitmapSource && typeof bitmapSource.close === 'function') { try { bitmapSource.close(); } catch {} }
+            const flags = []; const isSolid = metrics.rgbStdDev <= options.solidThreshold && metrics.grayStdDev <= options.solidThreshold; const isExtremelyBlurred = !isSolid && isExtremeBlur(metrics, options.blurThreshold); if (isSolid) flags.push('纯色图'); if (isExtremelyBlurred) flags.push('模糊图'); let label = '不符合（正常图）'; if (flags.length === 2) label = '纯色图、模糊图'; else if (flags.length === 1) label = flags[0];
+            return { url, label, flags, reason: `尺寸 ${metrics.width}×${metrics.height} ｜ RGB标准差 ${metrics.rgbStdDev.toFixed(2)} ｜ 灰度标准差 ${metrics.grayStdDev.toFixed(2)} ｜ Laplacian方差 ${metrics.laplacianVariance.toFixed(2)} ｜ 边缘均值 ${metrics.edgeMeanAbs.toFixed(2)} ｜ 强边缘占比 ${(metrics.strongEdgeRatio * 100).toFixed(2)}%` };
+          } catch (error) { return { url, label: '加载失败（可能跨域/防盗链）', flags: [], reason: error?.message || String(error) }; }
+        };
+        const startImageJudge = async () => {
+          if (imgJudge.processing) return;
+          const urls = imgJudge.inputText.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+          if (!urls.length) return setJudgeStatus('请先输入至少一个图片链接。');
+          imgJudge.processing = true; imgJudge.results = []; updateJudgeSummary(0, 0, 0, 0);
+          const blurThreshold = Number(imgJudge.blurThreshold) || 35; const solidThreshold = Number(imgJudge.solidThreshold) || 8; let solidCount = 0, blurCount = 0, normalCount = 0;
+          for (let i = 0; i < urls.length; i++) {
+            const url = urls[i]; const statusPrefix = urls.length > imgJudge.displayLimit ? `处理中 ${i + 1} / ${urls.length}（页面仅展示前 ${imgJudge.displayLimit} 条，不卡）` : `处理中 ${i + 1} / ${urls.length}`; setJudgeStatus(`${statusPrefix}\n${url}`);
+            const result = await analyzeImageUrl(url, { blurThreshold, solidThreshold }); imgJudge.results.push(result); if (result.flags.includes('纯色图')) solidCount += 1; if (result.flags.includes('模糊图')) blurCount += 1; if (result.label === '不符合（正常图）') normalCount += 1; updateJudgeSummary(imgJudge.results.length, solidCount, blurCount, normalCount);
+          }
+          setJudgeStatus(`处理完成，共 ${urls.length} 张。页面展示前 ${Math.min(urls.length, imgJudge.displayLimit)} 条，复制会导出全部结果。`); imgJudge.processing = false;
+        };
+
+        watch(() => segmenter.noQualifierMode, resetValidationState);
+        onBeforeUnmount(() => { if (toastTimer) clearTimeout(toastTimer); if (imageDebounceTimer) clearTimeout(imageDebounceTimer); if (imageObserver) imageObserver.disconnect(); });
+        return {
+          judgeCanvas, navItems, activeTab, toastMsg, lightbox,
+          segmenter, filter, batchSelector, image, urlExtract, imgJudge,
+          segmenterQualifiedCount, clearSegmenterInput, handleSegmentText, deleteSegment, toggleEditing, clearAllSelections, undoLastSelection, handleMouseUp, copySegment, checkAllSegments, copyAllAsTable, scrollToFirstUnqualified, scrollToTop,
+          batchStatusSummary, batchProgressWidth, batchCanCopyTable, batchRowCardClass, batchApplyQualifier, batchClearAllQualifiers, batchCaptureSelection, batchUndoSelection, batchClearSelections, batchToggleEdit, batchDeleteRow, batchCopyRow, batchClearAll, batchRunCheck, batchGoToNextTodo, batchCopyTable,
+          handleFilterProcessText, clearFilterAll, addFilterTerm, removeFilterTerm, copyProcessedText,
+          handleImageInput, renderImageGalleryFromInput, copySelectedImageLinks, clearImageAll, toggleImageSelect, getImageFilename, openImageLightbox, closeLightbox, copySingleImageLink,
+          urlExtractModeName, urlExtractModeTips, urlExtractModePlaceholder, urlExtractReserveCount, urlExtractCullCount, setUrlExtractMode, clearUrlExtract, loadUrlExtractSample, processUrlExtract, copyUrlExtractOutput, downloadUrlExtractCsv,
+          visibleResults, getImageJudgeBadgeClass, fillImageJudgeSample, clearImageJudgeAll, copyImageJudgeResults, startImageJudge
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
